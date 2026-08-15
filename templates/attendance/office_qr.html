@@ -1,0 +1,64 @@
+{% extends 'attendance/base.html' %}
+
+{% block title %}Office QR Code – QR Attendance{% endblock %}
+{% block page_title %}Office QR Code{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-12 col-md-8 col-lg-6">
+        <div class="card mb-4 text-center">
+            <div class="card-header d-flex align-items-center justify-content-between">
+                <div class="d-flex align-items-center gap-2">
+                    <i class="bi bi-upc-scan text-primary"></i>
+                    Shared Office QR Code
+                </div>
+                <span class="badge bg-success rounded-pill">Active</span>
+            </div>
+            <div class="card-body py-4">
+                <h5 class="fw-bold mb-1">{{ office_qr.name }}</h5>
+                <p class="text-muted mb-4" style="font-size:.8rem;">
+                    Print this single QR code at the office entrance.
+                    Employees scan it <strong>after logging in</strong> — the system
+                    records attendance for the logged-in employee.
+                </p>
+
+                <div class="d-inline-block p-3 bg-white rounded-3 shadow-sm mb-4"
+                     style="border: 3px solid #e2e8f0;">
+                    <img src="data:image/png;base64,{{ qr_image }}"
+                         alt="Office QR Code"
+                         class="img-fluid"
+                         style="max-width:280px; border-radius:8px;" />
+                </div>
+
+                <div class="d-flex gap-2 justify-content-center mb-3">
+                    <a href="data:image/png;base64,{{ qr_image }}"
+                       download="office-qr.png"
+                       class="btn btn-primary-custom">
+                        <i class="bi bi-download me-2"></i>Download QR
+                    </a>
+                    <button onclick="window.print()" class="btn btn-outline-secondary">
+                        <i class="bi bi-printer me-2"></i>Print
+                    </button>
+                </div>
+
+                <div class="text-start bg-light rounded-3 p-2 mb-3" style="font-size:.72rem;word-break:break-all;">
+                    <span class="text-muted">Scan target:</span>
+                    <code>{{ scan_url }}</code>
+                </div>
+
+                <!-- Rotate the office QR -->
+                <form method="post" onsubmit="return confirm('Rotate the office QR? The old code will immediately become invalid.');">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-warning w-100" style="border-radius:10px;font-weight:600;">
+                        <i class="bi bi-arrow-repeat me-2"></i>Generate New Office QR (rotate)
+                    </button>
+                </form>
+                <div class="form-text mt-2">
+                    The QR encodes a validation URL containing a secure, unpredictable token
+                    ({{ office_qr.uuid }}). No employee data is stored in the QR.
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

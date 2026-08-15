@@ -1,0 +1,104 @@
+{% extends "attendance/base.html" %}
+
+{% block title %}Add Employee{% endblock %}
+
+{% block page_title %}
+<i class="bi bi-person-plus-fill text-primary"></i>
+Add Employee
+{% endblock %}
+
+{% block content %}
+
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <span>
+            <i class="bi bi-person-vcard me-2"></i>
+            Employee Information
+        </span>
+
+        <a href="{% url 'app:employee_qr_list' %}" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-arrow-left"></i>
+            Back
+        </a>
+    </div>
+
+    <div class="card-body">
+
+        <form method="post">
+
+            {% csrf_token %}
+
+            <div class="row g-4">
+
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold">
+                        Full Name
+                    </label>
+                    {{ form.full_name }}
+                    {{ form.full_name.errors }}
+                </div>
+
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold">
+                        Department
+                    </label>
+                    {{ form.department }}
+                    {{ form.department.errors }}
+                </div>
+
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold">
+                        Designation
+                    </label>
+                    {{ form.designation }}
+                    {{ form.designation.errors }}
+                </div>
+
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold">
+                        Email
+                    </label>
+                    {{ form.email }}
+                    {{ form.email.errors }}
+                </div>
+
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold">
+                        Phone Number
+                    </label>
+                    {{ form.phone }}
+                    {{ form.phone.errors }}
+                </div>
+
+                <div class="col-md-6 d-flex align-items-end">
+                    <div class="form-check form-switch">
+                        {{ form.is_active }}
+                        <label class="form-check-label ms-2">
+                            Active Employee
+                        </label>
+                    </div>
+                </div>
+
+            </div>
+
+            <hr class="my-4">
+
+            <div class="d-flex justify-content-end gap-2">
+
+                <a href="{% url 'app:dashboard' %}" class="btn btn-light">
+                    Cancel
+                </a>
+
+                <button type="submit" class="btn btn-primary-custom">
+                    <i class="bi bi-check-circle me-2"></i>
+                    Save Employee
+                </button>
+
+            </div>
+
+        </form>
+
+    </div>
+</div>
+
+{% endblock %}

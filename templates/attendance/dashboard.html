@@ -1,0 +1,120 @@
+{% extends 'attendance/base.html' %}
+{% load tz %}
+
+{% block title %}Admin Dashboard – QR Attendance{% endblock %}
+{% block page_title %}Admin Dashboard{% endblock %}
+
+{% block content %}
+
+<!-- Header -->
+<div class="mb-4">
+    <h4 class="fw-bold mb-1" style="color:#1e1b4b;">
+        Attendance Overview
+    </h4>
+    <p class="text-muted mb-0" style="font-size:.875rem;">
+        <i class="bi bi-calendar3 me-1"></i>{{ today|date:"l, d M Y" }}
+    </p>
+</div>
+
+<!-- Stats row -->
+<div class="row g-3 mb-4">
+    <div class="col-6 col-lg-3">
+        <div class="stat-card" style="background:linear-gradient(135deg,#4f46e5,#3730a3);">
+            <div class="d-flex align-items-center justify-content-between">
+                <div>
+                    <div style="font-size:.72rem;font-weight:600;text-transform:uppercase;letter-spacing:.5px;opacity:.85;">Total Employees</div>
+                    <div class="fw-bold" style="font-size:1.6rem;">{{ total_employees }}</div>
+                </div>
+                <i class="bi bi-people" style="font-size:2rem;opacity:.5;"></i>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-lg-3">
+        <div class="stat-card" style="background:linear-gradient(135deg,#0ea5e9,#0369a1);">
+            <div class="d-flex align-items-center justify-content-between">
+                <div>
+                    <div style="font-size:.72rem;font-weight:600;text-transform:uppercase;letter-spacing:.5px;opacity:.85;">Today's Records</div>
+                    <div class="fw-bold" style="font-size:1.6rem;">{{ today_attendance_count }}</div>
+                </div>
+                <i class="bi bi-calendar-check" style="font-size:2rem;opacity:.5;"></i>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-lg-3">
+        <div class="stat-card" style="background:linear-gradient(135deg,#059669,#065f46);">
+            <div class="d-flex align-items-center justify-content-between">
+                <div>
+                    <div style="font-size:.72rem;font-weight:600;text-transform:uppercase;letter-spacing:.5px;opacity:.85;">Present Today</div>
+                    <div class="fw-bold" style="font-size:1.6rem;">{{ present_count }}</div>
+                </div>
+                <i class="bi bi-box-arrow-in-right" style="font-size:2rem;opacity:.5;"></i>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-lg-3">
+        <div class="stat-card" style="background:linear-gradient(135deg,#ea580c,#c2410c);">
+            <div class="d-flex align-items-center justify-content-between">
+                <div>
+                    <div style="font-size:.72rem;font-weight:600;text-transform:uppercase;letter-spacing:.5px;opacity:.85;">Absent Today</div>
+                    <div class="fw-bold" style="font-size:1.6rem;">{{ absent_count }}</div>
+                </div>
+                <i class="bi bi-person-x" style="font-size:2rem;opacity:.5;"></i>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Recent records -->
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <span><i class="bi bi-clock-history text-primary me-2"></i>Recent Attendance</span>
+        <a href="{% url 'app:admin_attendance' %}" class="btn btn-sm btn-outline-primary">View All</a>
+    </div>
+    <div class="card-body p-0">
+        {% if recent_records %}
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead>
+                    <tr>
+                        <th class="ps-4">Employee</th>
+                        <th>ID</th>
+                        <th>Date / Time</th>
+                        <th>Type</th>
+                        <th class="pe-4">Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for rec in recent_records %}
+                    <tr>
+                        <td class="ps-4">{{ rec.employee.full_name }}</td>
+                        <td><code>{{ rec.employee.employee_id }}</code></td>
+<td>{{ rec.timestamp|localtime|date:"d M Y" }} <span class="text-muted">{{ rec.timestamp|localtime|time:"H:i" }}</span></td>
+                        <td>
+                            {% if rec.attendance_type == 'IN' %}
+                                <span class="badge bg-success-subtle text-success badge-soft">Check-In</span>
+                            {% else %}
+                                <span class="badge bg-warning-subtle text-warning badge-soft">Check-Out</span>
+                            {% endif %}
+                        </td>
+                        <td class="pe-4">
+                            {% if rec.attendance_type == 'IN' %}
+                                <span class="badge bg-success rounded-pill">Present</span>
+                            {% else %}
+                                <span class="badge bg-secondary rounded-pill">Left</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center text-muted py-5">
+            <i class="bi bi-inbox" style="font-size:2.5rem;opacity:.4;"></i>
+            <p class="mt-2 mb-0">No attendance records yet. Scan an employee QR to begin.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+{% endblock %}

@@ -1,0 +1,67 @@
+{% extends 'attendance/base.html' %}
+
+{% block title %}Employee QR Codes – QR Attendance{% endblock %}
+{% block page_title %}Employee QR Codes{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header d-flex align-items-center justify-content-between">
+        <span>
+            <i class="bi bi-people text-primary me-2"></i>
+            All Employees
+        </span>
+        <span class="badge bg-primary rounded-pill">{{ employees|length }}</span>
+    </div>
+    <div class="card-body">
+        {% if employees %}
+        <div class="table-responsive">
+            <table class="table table-hover align-middle">
+                <thead>
+                    <tr>
+                        <th>Employee ID</th>
+                        <th>Name</th>
+                        <th>Department</th>
+                        <th>Status</th>
+                        <th class="text-center">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for emp in employees %}
+                    <tr>
+                        <td>
+                            <span class="fw-semibold">{{ emp.employee_id }}</span>
+                        </td>
+                        <td>
+{{ emp.full_name }}
+                        </td>
+                        <td>{{ emp.department|default:"—" }}</td>
+                        <td>
+                            {% if emp.is_active %}
+                            <span class="badge bg-success badge-soft">Active</span>
+                            {% else %}
+                            <span class="badge bg-secondary badge-soft">Inactive</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-center">
+                            <a
+                                href="{% url 'app:qr_display' %}?employee={{ emp.pk }}"
+                                class="btn btn-sm btn-primary-custom"
+                                title="View QR Code"
+                            >
+                                <i class="bi bi-qr-code me-1"></i>View QR
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center py-5 text-muted">
+            <i class="bi bi-inbox" style="font-size:2.5rem;"></i>
+            <p class="mt-3 mb-0">No employees found. Add employees in the Django admin.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

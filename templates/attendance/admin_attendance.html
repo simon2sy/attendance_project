@@ -1,0 +1,133 @@
+{% extends 'attendance/base.html' %}
+{% load tz %}
+
+{% block title %}All Attendance – QR Attendance{% endblock %}
+{% block page_title %}All Attendance{% endblock %}
+
+{% block content %}
+
+<!-- Stats row -->
+<div class="row g-3 mb-4">
+    <div class="col-6 col-lg-4">
+        <div class="stat-card" style="background:linear-gradient(135deg,#4f46e5,#3730a3);">
+            <div class="d-flex align-items-center justify-content-between">
+                <div>
+                    <div style="font-size:.72rem;font-weight:600;text-transform:uppercase;letter-spacing:.5px;opacity:.85;">Total Records</div>
+                    <div class="fw-bold" style="font-size:1.8rem;">{{ total_records }}</div>
+                </div>
+                <i class="bi bi-database" style="font-size:2rem;opacity:.5;"></i>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-lg-4">
+        <div class="stat-card" style="background:linear-gradient(135deg,#059669,#065f46);">
+            <div class="d-flex align-items-center justify-content-between">
+                <div>
+                    <div style="font-size:.72rem;font-weight:600;text-transform:uppercase;letter-spacing:.5px;opacity:.85;">Active Employees</div>
+                    <div class="fw-bold" style="font-size:1.8rem;">{{ total_employees }}</div>
+                </div>
+                <i class="bi bi-people" style="font-size:2rem;opacity:.5;"></i>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-lg-4">
+        <div class="stat-card" style="background:linear-gradient(135deg,#0ea5e9,#0369a1);">
+            <div class="d-flex align-items-center justify-content-between">
+                <div>
+                    <div style="font-size:.72rem;font-weight:600;text-transform:uppercase;letter-spacing:.5px;opacity:.85;">Today's Check-Ins</div>
+                    <div class="fw-bold" style="font-size:1.8rem;">{{ today_checkins }}</div>
+                </div>
+                <i class="bi bi-box-arrow-in-right" style="font-size:2rem;opacity:.5;"></i>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Filters -->
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="get" class="row g-2 align-items-end">
+            <div class="col-12 col-md-3">
+                <label class="form-label fw-semibold" style="font-size:.8rem;">Search</label>
+                <input type="text" name="search" value="{{ search }}" class="form-control form-control-sm"
+                       placeholder="Name or ID…">
+            </div>
+            <div class="col-12 col-md-2">
+                <label class="form-label fw-semibold" style="font-size:.8rem;">Start Date</label>
+                <input type="date" name="start_date" value="{{ start_date }}" class="form-control form-control-sm">
+            </div>
+            <div class="col-12 col-md-2">
+                <label class="form-label fw-semibold" style="font-size:.8rem;">End Date</label>
+                <input type="date" name="end_date" value="{{ end_date }}" class="form-control form-control-sm">
+            </div>
+            <div class="col-12 col-md-2">
+                <label class="form-label fw-semibold" style="font-size:.8rem;">Type</label>
+                <select name="type" class="form-select form-select-sm">
+                    <option value="">All</option>
+                    <option value="IN" {% if att_type == 'IN' %}selected{% endif %}>Check-In</option>
+                    <option value="OUT" {% if att_type == 'OUT' %}selected{% endif %}>Check-Out</option>
+                </select>
+            </div>
+            <div class="col-12 col-md-3 d-flex gap-2">
+                <button class="btn btn-primary-custom btn-sm flex-fill">
+                    <i class="bi bi-funnel me-1"></i>Apply
+                </button>
+                <a href="{% url 'app:admin_attendance' %}" class="btn btn-outline-secondary btn-sm">
+                    <i class="bi bi-arrow-counterclockwise"></i>
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Records table -->
+<div class="card">
+    <div class="card-header">
+        <i class="bi bi-people text-primary me-2"></i>Attendance Records
+        <span class="text-muted ms-2" style="font-size:.8rem;">(showing up to 200)</span>
+    </div>
+    <div class="card-body p-0">
+        {% if records %}
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead>
+                    <tr>
+                        <th class="ps-4">Employee</th>
+                        <th>ID</th>
+                        <th>Date / Time</th>
+                        <th>Type</th>
+                        <th class="pe-4">Device</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for rec in records %}
+                    <tr>
+                        <td class="ps-4">
+{{ rec.employee.full_name }}
+                            <div class="text-muted" style="font-size:.75rem;">{{ rec.employee.department|default:"" }}</div>
+                        </td>
+                        <td><code>{{ rec.employee.employee_id }}</code></td>
+<td>{{ rec.timestamp|localtime|date:"d M Y" }} <span class="text-muted">{{ rec.timestamp|localtime|time:"H:i" }}</span></td>
+                        <td>
+                            {% if rec.attendance_type == 'IN' %}
+                                <span class="badge bg-success-subtle text-success badge-soft">Check-In</span>
+                            {% else %}
+                                <span class="badge bg-warning-subtle text-warning badge-soft">Check-Out</span>
+                            {% endif %}
+                        </td>
+                        <td class="pe-4 text-muted" style="font-size:.8rem;">{{ rec.device_name|default:"—" }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center text-muted py-5">
+            <i class="bi bi-inbox" style="font-size:2.5rem;opacity:.4;"></i>
+            <p class="mt-2 mb-0">No records match your filters.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+{% endblock %}

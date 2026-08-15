@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Office QR Scanner – QR Attendance</title>
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        body { font-family: 'Inter', sans-serif; background: #f1f5f9; min-height: 100vh; }
+        .topbar {
+            background: linear-gradient(135deg, #1e1b4b 0%, #3730a3 100%);
+            color: #fff; padding: 1rem 1.25rem;
+            display: flex; align-items: center; justify-content: space-between;
+        }
+        .topbar .brand { font-weight: 700; font-size: 1.05rem; color:#fff; text-decoration:none; display:flex; align-items:center; gap:.5rem; }
+        .card { border: none; border-radius: 16px; box-shadow: 0 2px 12px rgba(30,27,75,.06); }
+    </style>
+</head>
+<body>
+
+<div class="topbar">
+    <a class="brand" href="{% url 'app:employee_dashboard' %}">
+        <i class="bi bi-arrow-left"></i> <span>Back to Dashboard</span>
+    </a>
+    <a href="{% url 'app:logout' %}" class="btn btn-sm btn-light" style="border-radius:10px;font-weight:600;">
+        <i class="bi bi-box-arrow-right me-1"></i>Logout
+    </a>
+</div>
+
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-12 col-md-8 col-lg-6">
+            <div class="card mb-4">
+                <div class="card-header fw-semibold">
+                    <i class="bi bi-qr-code-scan text-primary me-2"></i>Scan Office QR Code
+                </div>
+                <div class="card-body text-center">
+
+                    <p class="text-muted mb-3" style="font-size:.875rem;">
+                        Point your camera at the office QR code at the entrance.
+                    </p>
+
+                    <!-- Video preview -->
+                    <div class="position-relative mx-auto mb-3"
+                         style="width:100%;max-width:320px;height:280px;
+                                background:#0f172a;border-radius:16px;overflow:hidden;">
+                        <video id="qr-video" playsinline muted
+                               style="width:100%;height:100%;object-fit:cover;"></video>
+                        <div id="scanner-overlay"
+                             class="position-absolute top-0 start-0 w-100 h-100"
+                             style="border:3px solid rgba(79,70,229,.5);border-radius:16px;pointer-events:none;"></div>
+                        <div id="scan-status"
+                             class="position-absolute bottom-0 start-0 w-100 p-2 text-center"
+                             style="background:rgba(15,23,42,.8);color:#fff;font-size:.8rem;">
+                            <i class="bi bi-camera-video me-1"></i>Starting camera…
+                        </div>
+                    </div>
+
+                    <button id="toggleCam" class="btn btn-outline-secondary mb-3">
+                        <i class="bi bi-camera me-2"></i>Start / Stop Camera
+                    </button>
+
+                    <hr class="my-4">
+
+                    <!-- Manual office QR entry (fallback) -->
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold" style="font-size:.85rem;">
+                            Office QR Code (manual fallback)
+                        </label>
+                        <input type="text" id="office-code" class="form-control"
+                               placeholder="Scan the office QR code" style="text-align:center;">
+                        <div class="form-text">
+                            Scan the office QR or type/paste its value, then click Record.
+                        </div>
+                    </div>
+
+                    <button id="btn-record" class="btn btn-primary"
+                            style="border-radius:10px;font-weight:600;">
+<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
+<script>
+(function () {
+    'use strict';
+
+    const video      = document.getElementById('qr-video');
+    const statusEl   = document.getElementById('scan-status');
+    const officeCode = document.getElementById('office-code');
+    const resultBox  = document.getElementById('result-box');
+    const btnRecord  = document.getElementById('btn-record');
+    const toggleCam  = document.getElementById('toggleCam');
+
+    let stream   = null;
+    let scanning = false;
+    let lastData = '';
+    let submitting = false;
+
+    function getCookie(name) {
+        const m = document.cookie.match('(^|;)\\s*' + name + '\\s*=\\s*([^;]+)');
+        return m ? decodeURIComponent(m.pop()) : '';
+    }
+
+    async function startCamera() {
+        try {
+            stream = await navigator.mediaDevices.getUserMedia({
+                video: { facingMode: 'environment' }
+            });
+            video.srcObject = stream;
+            await video.play();
+            scanning = true;
+            statusEl.innerHTML = '<i class="bi bi-qr-code-scan me-1"></i>Scanning…';
+            requestAnimationFrame(scanFrame);
+        } catch (e) {
+            statusEl.innerHTML =
+                '<i class="bi bi-exclamation-triangle me-1"></i>Camera unavailable: ' + e.message;
+        }
+    }
+
+    function stopCamera() {
+        if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
+        scanning = false;
+        video.srcObject = null;
+        statusEl.innerHTML = '<i class="bi bi-camera-video me-1"></i>Camera stopped.';
+    }
+
+    toggleCam.addEventListener('click', () => scanning ? stopCamera() : startCamera());
+
+    function scanFrame() {
+        if (!scanning) return;
+        if (video.readyState === video.HAVE_ENOUGH_DATA) {
+            const canvas = document.createElement('canvas');
+            canvas.width  = video.videoWidth;
+            canvas.height = video.videoHeight;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+            const img  = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const code = jsQR(img.data, img.width, img.height, { inversionAttempts: 'dontInvert' });
+
+            if (code && code.data && code.data !== lastData) {
+                lastData = code.data;
+                officeCode.value = code.data;
+                stopCamera();
+                submitScan();   // auto-submit — identity comes from the session
+                return;
+            }
+        }
+        requestAnimationFrame(scanFrame);
+    }
+
+    async function submitScan() {
+        const code = officeCode.value.trim();
+        if (!code) {
+            showResult('danger', '<i class="bi bi-exclamation-circle me-1"></i>Please scan the office QR code first.');
+            return;
+        }
+        if (submitting) return;
+        submitting = true;
+        btnRecord.disabled = true;
+
+        let lat = null, lon = null;
+        try {
+            const pos = await new Promise((res, rej) => {
+                if (!navigator.geolocation) return rej(new Error('no geo'));
+                navigator.geolocation.getCurrentPosition(res, rej, { timeout: 5000 });
+            });
+            lat = pos.coords.latitude; lon = pos.coords.longitude;
+        } catch (e) { /* geolocation optional */ }
+
+        const payload = {
+            office_qr:   code,
+            latitude:    lat,
+            longitude:   lon,
+            device_name: navigator.userAgent.slice(0, 150)
+        };
+
+        try {
+            const res = await fetch('{% url "app:process_office_scan" %}', {
+                method:  'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                body: JSON.stringify(payload)
+            });
+            const text = await res.text();
+            let data;
+            try { data = JSON.parse(text); }
+            catch (e) { showResult('danger', '<i class="bi bi-exclamation-circle me-1"></i>Server returned a non-JSON response.'); reset(); return; }
+
+            if (data.success) {
+                showResult('success',
+                    '<i class="bi bi-check-circle me-1"></i><strong>' + data.message + '</strong><br>' +
+                    'Employee: ' + data.data.employee_name + ' (' + data.data.employee_id + ')<br>' +
+                    'Type: ' + data.data.attendance_type + ' &middot; Time: ' + data.data.timestamp);
+            } else if (data.already_done) {
+                showResult('warning',
+                    '<i class="bi bi-info-circle me-1"></i><strong>' + data.message + '</strong><br>' +
+                    'Employee: ' + data.data.employee_name + ' (' + data.data.employee_id + ')<br>' +
+                    'Already recorded at ' + data.data.timestamp);
+            } else {
+                showResult('danger',
+                    '<i class="bi bi-exclamation-circle me-1"></i>' + (data.message || 'Unknown error from server.'));
+            }
+        } catch (e) {
+            showResult('danger', '<i class="bi bi-exclamation-circle me-1"></i>Network error: ' + e.message);
+        }
+        reset();
+    }
+
+    function showResult(kind, html) {
+        resultBox.className = 'rounded-3 p-3 text-start mt-3';
+        resultBox.classList.add(
+            kind === 'success' ? 'bg-success-subtle' :
+            kind === 'warning' ? 'bg-warning-subtle' : 'bg-danger-subtle'
+        );
+        resultBox.innerHTML = html;
+    }
+
+    function reset() {
+        submitting = false;
+        btnRecord.disabled = false;
+    }
+
+    btnRecord.addEventListener('click', submitScan);
+})();
+</script>
+</body>
+</html>
+                        <i class="bi bi-check2-circle me-2"></i>Record Attendance
+                    </button>
+
+                    <div id="result-box"
+                         class="d-none rounded-3 p-3 text-start mt-3"
+                         style="font-size:.85rem;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

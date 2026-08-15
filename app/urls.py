@@ -28,6 +28,11 @@ urlpatterns = [
     # AJAX endpoints
     path('api/office-scan/', views.process_office_scan, name='process_office_scan'),
 
+    # To-Do list endpoints
+    path('todo/add/', views.add_todo, name='add_todo'),
+    path('todo/<int:todo_id>/toggle/', views.toggle_todo, name='toggle_todo'),
+    path('todo/<int:todo_id>/delete/', views.delete_todo, name='delete_todo'),
+
     # Staff attendance overview
     path('admin-view/', views.admin_attendance_view, name='admin_attendance'),
     path(

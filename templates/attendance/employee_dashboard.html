@@ -96,6 +96,129 @@
         </div>
     </div>
 
+    <!-- To-Do List Section -->
+    <div class="card mb-4">
+        <div class="card-header bg-transparent border-0 pt-3 pb-2 px-4 d-flex align-items-center justify-content-between flex-wrap gap-2">
+            <div class="d-flex align-items-center gap-2">
+                <i class="bi bi-check2-square text-primary fs-5"></i>
+                <h5 class="fw-bold mb-0 text-dark">My To-Do List</h5>
+                <span class="badge bg-primary-subtle text-primary rounded-pill ms-2" style="font-size: .75rem;">
+                    {{ pending_todos_count }} Pending
+                </span>
+                {% if completed_todos_count %}
+                <span class="badge bg-success-subtle text-success rounded-pill" style="font-size: .75rem;">
+                    {{ completed_todos_count }} Completed
+                </span>
+                {% endif %}
+            </div>
+
+            <!-- Task Filter Buttons -->
+            <div class="btn-group btn-group-sm" role="group" id="todoFilterGroup">
+                <button type="button" class="btn btn-outline-secondary active" onclick="filterTodos('all', this)">All</button>
+                <button type="button" class="btn btn-outline-secondary" onclick="filterTodos('pending', this)">Pending</button>
+                <button type="button" class="btn btn-outline-secondary" onclick="filterTodos('completed', this)">Completed</button>
+            </div>
+        </div>
+
+        <div class="card-body px-4 pb-4 pt-1">
+            <!-- Add Task Form -->
+            <form action="{% url 'app:add_todo' %}" method="POST" class="mb-4" id="addTodoForm">
+                {% csrf_token %}
+                <div class="row g-2">
+                    <div class="col-12 col-md-5">
+                        <input type="text" name="title" class="form-control rounded-3" placeholder="What needs to be done?" required style="font-size: 0.9rem;">
+                    </div>
+                    <div class="col-12 col-md-4">
+                        <input type="text" name="description" class="form-control rounded-3" placeholder="Description (optional)" style="font-size: 0.9rem;">
+                    </div>
+                    <div class="col-6 col-md-2">
+                        <input type="date" name="due_date" class="form-control rounded-3" style="font-size: 0.9rem;" title="Due Date">
+                    </div>
+                    <div class="col-6 col-md-1 d-grid">
+                        <button type="submit" class="btn btn-primary rounded-3 fw-semibold" style="font-size: 0.88rem;">
+                            <i class="bi bi-plus-lg me-1"></i>Add
+                        </button>
+                    </div>
+                </div>
+            </form>
+
+            <!-- Tasks List -->
+            {% if todos %}
+            <div class="list-group list-group-flush" id="todoList">
+                {% for todo in todos %}
+                <div class="list-group-item px-3 py-3 border rounded-3 mb-2 todo-item {% if todo.is_completed %}todo-completed{% else %}todo-pending{% endif %}"
+                     style="transition: all 0.2s ease; background: #fafafa;">
+                    <div class="d-flex align-items-center justify-content-between gap-3">
+                        <div class="d-flex align-items-start gap-3 flex-grow-1 min-w-0">
+                            <!-- Toggle Form -->
+                            <form action="{% url 'app:toggle_todo' todo.id %}" method="POST" class="d-inline mt-1">
+                                {% csrf_token %}
+                                <button type="submit" class="btn p-0 border-0 bg-transparent text-decoration-none" title="{% if todo.is_completed %}Mark as incomplete{% else %}Mark as completed{% endif %}">
+                                    {% if todo.is_completed %}
+                                        <i class="bi bi-check-circle-fill text-success fs-5"></i>
+                                    {% else %}
+                                        <i class="bi bi-circle text-muted fs-5"></i>
+                                    {% endif %}
+                                </button>
+                            </form>
+
+                            <div class="flex-grow-1 min-w-0">
+                                <div class="fw-semibold {% if todo.is_completed %}text-decoration-line-through text-muted{% else %}text-dark{% endif %}" style="font-size: 0.95rem; word-break: break-word;">
+                                    {{ todo.title }}
+                                </div>
+                                {% if todo.description %}
+                                <div class="text-muted small mt-1 {% if todo.is_completed %}text-decoration-line-through{% endif %}" style="font-size: 0.825rem;">
+                                    {{ todo.description }}
+                                </div>
+                                {% endif %}
+                                <div class="d-flex align-items-center gap-2 mt-2 flex-wrap" style="font-size: 0.75rem;">
+                                    {% if todo.due_date %}
+                                        {% if todo.is_completed %}
+                                            <span class="badge bg-secondary-subtle text-secondary border">
+                                                <i class="bi bi-calendar-event me-1"></i>Due {{ todo.due_date|date:"b d, Y" }}
+                                            </span>
+                                        {% elif todo.due_date < today %}
+                                            <span class="badge bg-danger-subtle text-danger border border-danger-subtle">
+                                                <i class="bi bi-exclamation-triangle me-1"></i>Overdue ({{ todo.due_date|date:"b d" }})
+                                            </span>
+                                        {% elif todo.due_date == today %}
+                                            <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle">
+                                                <i class="bi bi-clock me-1"></i>Due Today
+                                            </span>
+                                        {% else %}
+                                            <span class="badge bg-info-subtle text-info-emphasis border border-info-subtle">
+                                                <i class="bi bi-calendar3 me-1"></i>Due {{ todo.due_date|date:"b d, Y" }}
+                                            </span>
+                                        {% endif %}
+                                    {% endif %}
+                                    <span class="text-muted">Added {{ todo.created_at|date:"b d, H:i" }}</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Delete Form -->
+                        <div>
+                            <form action="{% url 'app:delete_todo' todo.id %}" method="POST" class="d-inline" onsubmit="return confirm('Are you sure you want to delete this task?');">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-sm btn-light text-danger rounded-circle p-1 border-0" title="Delete Task" style="width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="text-center text-muted py-4 rounded-3 border border-dashed" style="background: #fafafa;">
+                <i class="bi bi-check2-all text-success mb-2" style="font-size: 2.2rem; display: block;"></i>
+                <div class="fw-semibold text-dark" style="font-size: 0.95rem;">All caught up!</div>
+                <p class="small text-muted mb-0" style="font-size: 0.825rem;">You have no tasks in your To-Do list. Use the form above to add a new task.</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
     <!-- Attendance history (own records only) -->
     <div class="card">
         <div class="card-header fw-semibold">
@@ -146,5 +269,34 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    function filterTodos(filterType, btn) {
+        // Update active button
+        const filterGroup = document.getElementById('todoFilterGroup');
+        if (filterGroup) {
+            filterGroup.querySelectorAll('.btn').forEach(b => b.classList.remove('active'));
+            if (btn) btn.classList.add('active');
+        }
+
+        const items = document.querySelectorAll('#todoList .todo-item');
+        items.forEach(item => {
+            if (filterType === 'all') {
+                item.style.display = 'block';
+            } else if (filterType === 'pending') {
+                if (item.classList.contains('todo-pending')) {
+                    item.style.display = 'block';
+                } else {
+                    item.style.display = 'none';
+                }
+            } else if (filterType === 'completed') {
+                if (item.classList.contains('todo-completed')) {
+                    item.style.display = 'block';
+                } else {
+                    item.style.display = 'none';
+                }
+            }
+        });
+    }
+</script>
 </body>
 </html>

@@ -2,7 +2,7 @@ import uuid
 from django.contrib import admin
 from django.contrib import messages
 from django.utils.html import format_html
-from .models import Employee, Attendance, OfficeQRCode
+from .models import Employee, Attendance, OfficeQRCode, Todo
 
 
 @admin.register(Employee)
@@ -105,3 +105,25 @@ class AttendanceAdmin(admin.ModelAdmin):
         "employee",
         "qr",
     )
+
+
+@admin.register(Todo)
+class TodoAdmin(admin.ModelAdmin):
+    list_display = (
+        "title",
+        "employee",
+        "is_completed",
+        "due_date",
+        "created_at",
+    )
+    list_filter = (
+        "is_completed",
+        "due_date",
+    )
+    search_fields = (
+        "title",
+        "description",
+        "employee__full_name",
+        "employee__employee_id",
+    )
+

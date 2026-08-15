@@ -14,7 +14,7 @@ from django.db.models import Q
 from datetime import datetime
 from io import BytesIO
 import base64
-from .models import Employee, Attendance, OfficeQRCode
+from .models import Employee, Attendance, OfficeQRCode, Todo
 try:
     import qrcode
     from qrcode.image.pil import PilImage
@@ -284,12 +284,19 @@ def employee_dashboard(request):
         employee=employee
     ).order_by('-timestamp')[:20]
 
+    todos = Todo.objects.filter(employee=employee)
+    pending_todos_count = todos.filter(is_completed=False).count()
+    completed_todos_count = todos.filter(is_completed=True).count()
+
     context = {
         'employee':          employee,
         'today':             today,
         'present_today':     present_today,
         'latest_record':     latest_record,
         'attendance_history': attendance_history,
+        'todos':             todos,
+        'pending_todos_count': pending_todos_count,
+        'completed_todos_count': completed_todos_count,
     }
     return render(request, 'attendance/employee_dashboard.html', context)
 
@@ -673,3 +680,103 @@ def add_employee(request):
             "form": form
         },
     )
+
+
+# ─────────────────────────────────────────────
+# Employee To-Do List views
+# ─────────────────────────────────────────────
+@login_required(login_url='/attendance/login/')
+@require_http_methods(["POST"])
+def add_todo(request):
+    try:
+        employee = request.user.employee_profile
+    except Employee.DoesNotExist:
+        if request.headers.get('x-requested-with') == 'XMLHttpRequest' or request.content_type == 'application/json':
+            return JsonResponse({'success': False, 'message': 'No employee profile found.'}, status=403)
+        messages.error(request, 'No employee profile found.')
+        return redirect('app:employee_dashboard')
+
+    title = request.POST.get('title', '').strip()
+    description = request.POST.get('description', '').strip()
+    due_date = request.POST.get('due_date', '').strip() or None
+
+    if not title:
+        if request.headers.get('x-requested-with') == 'XMLHttpRequest' or request.content_type == 'application/json':
+            return JsonResponse({'success': False, 'message': 'Task title is required.'}, status=400)
+        messages.error(request, 'Task title is required.')
+        return redirect('app:employee_dashboard')
+
+    todo = Todo.objects.create(
+        employee=employee,
+        title=title,
+        description=description,
+        due_date=due_date
+    )
+
+    if request.headers.get('x-requested-with') == 'XMLHttpRequest' or request.content_type == 'application/json':
+        return JsonResponse({
+            'success': True,
+            'message': 'Task added successfully!',
+            'todo': {
+                'id': todo.id,
+                'title': todo.title,
+                'description': todo.description,
+                'is_completed': todo.is_completed,
+                'due_date': todo.due_date.strftime('%Y-%m-%d') if todo.due_date else None,
+                'created_at': todo.created_at.strftime('%Y-%m-%d %H:%M'),
+            }
+        })
+
+    messages.success(request, 'Task added successfully!')
+    return redirect('app:employee_dashboard')
+
+
+@login_required(login_url='/attendance/login/')
+@require_http_methods(["POST"])
+def toggle_todo(request, todo_id):
+    try:
+        employee = request.user.employee_profile
+        todo = Todo.objects.get(pk=todo_id, employee=employee)
+    except (Employee.DoesNotExist, Todo.DoesNotExist):
+        if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+            return JsonResponse({'success': False, 'message': 'Task not found.'}, status=404)
+        messages.error(request, 'Task not found.')
+        return redirect('app:employee_dashboard')
+
+    todo.is_completed = not todo.is_completed
+    todo.save()
+
+    if request.headers.get('x-requested-with') == 'XMLHttpRequest' or request.content_type == 'application/json':
+        return JsonResponse({
+            'success': True,
+            'is_completed': todo.is_completed,
+            'message': f"Task marked as {'completed' if todo.is_completed else 'pending'}."
+        })
+
+    messages.success(request, f"Task marked as {'completed' if todo.is_completed else 'pending'}.")
+    return redirect('app:employee_dashboard')
+
+
+@login_required(login_url='/attendance/login/')
+@require_http_methods(["POST"])
+def delete_todo(request, todo_id):
+    try:
+        employee = request.user.employee_profile
+        todo = Todo.objects.get(pk=todo_id, employee=employee)
+    except (Employee.DoesNotExist, Todo.DoesNotExist):
+        if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+            return JsonResponse({'success': False, 'message': 'Task not found.'}, status=404)
+        messages.error(request, 'Task not found.')
+        return redirect('app:employee_dashboard')
+
+    todo.delete()
+
+    if request.headers.get('x-requested-with') == 'XMLHttpRequest' or request.content_type == 'application/json':
+        return JsonResponse({
+            'success': True,
+            'message': 'Task deleted successfully.'
+        })
+
+    messages.success(request, 'Task deleted successfully.')
+    return redirect('app:employee_dashboard')
+
